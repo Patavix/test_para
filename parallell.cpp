@@ -40,6 +40,10 @@ void Get_Input(int A[], int local_n, int my_rank) {
 		for (int i = 0; i < N; i++) {
 			a[i] = rand() % 1000;
 		}
+        cout << "The unsorted array is:" << "\t";
+        for (int j = 0; j < N; j++) {
+            cout << a[j] << " ";
+        }
 		MPI_Scatter(a, local_n, MPI_INT, A, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 		delete[] a;
 	}
@@ -91,8 +95,8 @@ void Merge_High(int my_keys[], int recv_keys[], int local_n) {
             r_i--;
 		}
 	}
-	for (i = 0; i < local_n; i++) {
-		my_keys[i] = temp_keys[i];
+	for (m_i = 0; m_i < local_n; m_i++) {
+		my_keys[m_i] = temp_keys[m_i];
 	}
 	delete[] a;
 }
@@ -160,10 +164,10 @@ int main() {
  
 	// 打印排序后的数组
 	// Print_Sorted_Vector(A, local_n, my_rank);
+    int* a = NULL;
     MPI_Gather(A, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 	// 0号进程接收各个进程的A的分量，并输出至控制台
 	if (my_rank == 0) {
-        int* a = NULL;
 		a = new int[N];
 		MPI_Gather(A, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 		for (int i = 0; i < N; i++) {
