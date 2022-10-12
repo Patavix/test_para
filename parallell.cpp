@@ -5,7 +5,7 @@
 #include<mpi.h>
  
 #define N 16		//待排序的整型数量
- 
+#define M 1000 
 using namespace std;
  
 /*该函数用来获得某个阶段，某个进程的通信伙伴*/
@@ -31,19 +31,20 @@ int find_partner(int my_rank, int phase) {
 }
  
 /*这个函数用来产生随机数，并分发至各个进程*/
-void Get_Input(int A[], int local_n, int my_rank) {
+void generate_rand_array(int A[], int local_n, int my_rank) {
 	int* a = NULL;
 	// 主进程动态开辟内存，产生随机数，分发至各个进程
 	if (my_rank == 0) {
 		a = new int[N];
 		srand((int)time(0));
 		for (int i = 0; i < N; i++) {
-			a[i] = rand() % 1000;
+			a[i] = rand() % M;
 		}
         cout << "The unsorted array is:" << "\t";
         for (int j = 0; j < N; j++) {
             cout << a[j] << " ";
         }
+        cout << endl;
 		MPI_Scatter(a, local_n, MPI_INT, A, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 		delete[] a;
 	}
@@ -54,7 +55,7 @@ void Get_Input(int A[], int local_n, int my_rank) {
 
 
 /*该函数用来合并两个进程的数据，并取较小的一半数据*/
-void Merge_Low(int my_keys[], int recv_keys[], int local_n) {
+void merge_low(int my_keys[], int recv_keys[], int local_n) {
 	int* temp_keys = new int[local_n];		// 临时数组，倒腾较小的数据
 	int m_i = 0, r_i = 0, t_i = 0;	//分别为A,B,a三个数组的指针
  
@@ -79,7 +80,7 @@ void Merge_Low(int my_keys[], int recv_keys[], int local_n) {
 }
  
 /*该函数用来合并两个进程的数据，并取较大的一半数据，与前面的Merge_Low函数类似*/
-void Merge_High(int my_keys[], int recv_keys[], int local_n) {
+void merge_high(int my_keys[], int recv_keys[], int local_n) {
 	int* temp_keys = new int[local_n];
 	int m_i = local_n - 1, r_i = local_n - 1, t_i = local_n - 1;
 	// 注意取最大值需要从后往前面取
@@ -98,21 +99,18 @@ void Merge_High(int my_keys[], int recv_keys[], int local_n) {
 	for (m_i = 0; m_i < local_n; m_i++) {
 		my_keys[m_i] = temp_keys[m_i];
 	}
-	delete[] a;
+	delete[] temp_keys;
 }
  
 /*这个函数用来输出排序后的数组*/
-void Print_Sorted_Vector(int A[], int local_n, int my_rank) {
+void print_array(int A[], int local_n, int my_rank) {
 	int* a = NULL;
 	// 0号进程接收各个进程的A的分量，并输出至控制台
 	if (my_rank == 0) {
 		a = new int[N];
 		MPI_Gather(A, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 		for (int i = 0; i < N; i++) {
-			cout << a[i] << "\t";
-			if (i % 4 == 3) {
-				cout << endl;
-			}
+			cout << a[i] << " ";
 		}
 		cout << endl;
 		delete[] a;
@@ -140,7 +138,7 @@ int main() {
 	B = new int[local_n];
  
 	// 随机产生数据并分发至各个进程
-	Get_Input(A, local_n, my_rank);
+	generate_rand_array(A, local_n, my_rank);
  
 	// 先有序化本地数据
 	sort(A, A + local_n);
@@ -154,32 +152,19 @@ int main() {
 			// 与对方进程交换数据
 			MPI_Sendrecv(A, local_n, MPI_INT, partner, 0, B, local_n, MPI_INT, partner, 0, MPI_COMM_WORLD, MPI_STATUSES_IGNORE);
 			if (my_rank < partner) {
-				Merge_Low(A, B, local_n);
+				merge_low(A, B, local_n);
 			}
 			else {
-				Merge_High(A, B, local_n);
+				merge_high(A, B, local_n);
 			}
 		}
 	}
  
 	// 打印排序后的数组
-	// Print_Sorted_Vector(A, local_n, my_rank);
-    int* a = NULL;
-    MPI_Gather(A, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
-	// 0号进程接收各个进程的A的分量，并输出至控制台
-	if (my_rank == 0) {
-		a = new int[N];
-		MPI_Gather(A, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
-		for (int i = 0; i < N; i++) {
-			cout << a[i] << "\t";
-			if (i % 4 == 3) {
-				cout << endl;
-			}
-		}
-		cout << endl;
-		delete[] a;
-	}
+	print_array(A, local_n, my_rank);
 
+    delete[] A;
+    delete[] B;
 	MPI_Finalize();
 	return 0;
 }
