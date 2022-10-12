@@ -3,10 +3,10 @@
 #include<random>
 #include<time.h>
 #include<mpi.h>
-#define N 16		//num_elements
+#define N 20		//num_elements
 #define M 1000 
 using namespace std;
-
+double start, end;
 int find_partner(int my_rank, int phase) {
 	if (phase % 2 == 0) {
 		if (my_rank % 2 == 0) {
@@ -40,6 +40,7 @@ void generate_rand_array(int A[], int local_n, int my_rank) {
             cout << a[j] << " ";
         }
         cout << endl;
+        start = MPI_Wtime();
 		MPI_Scatter(a, local_n, MPI_INT, A, local_n, MPI_INT, 0, MPI_COMM_WORLD);
 		delete[] a;
 	}
@@ -97,12 +98,19 @@ void print_array(int A[], int local_n, int my_rank) {
 	if (my_rank == 0) {
 		a = new int[N];
 		MPI_Gather(A, local_n, MPI_INT, a, local_n, MPI_INT, 0, MPI_COMM_WORLD);
+        end = MPI_Wtime();
 		cout << "The sorted array is:";
         cout << endl;
         for (int i = 0; i < N; i++) {
 			cout << a[i] << " ";
 		}
 		cout << endl;
+        cout << "Student ID: " << "119010239" << endl; // replace it with your student id
+        cout << "Name: " << "潘涛" << endl; // replace it with your name
+        cout << "Assignment 1" << endl;
+        cout << "Run Time: " << end-start << " seconds" << endl;
+        cout << "Input Size: " << N << endl;
+        cout << "Process Number: " << comm_sz << endl; 
 		delete[] a;
 	}
 	else {
@@ -115,7 +123,6 @@ int main(int argc, char *argv[]) {
 	int* A, * B;	
 	int comm_sz;
     int my_rank;
-    double start, end;
 	MPI_Init(&argc, &argv);
  
 	MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
@@ -126,7 +133,6 @@ int main(int argc, char *argv[]) {
 	B = new int[local_n];
  
 	generate_rand_array(A, local_n, my_rank);
-    start = MPI_Wtime()
 	sort(A, A + local_n);
  
 	for (int phase = 0; phase < comm_sz; phase++) {
@@ -143,13 +149,6 @@ int main(int argc, char *argv[]) {
 	}
  
 	print_array(A, local_n, my_rank);
-    end = MPI_Wtime()
-    cout << "Student ID: " << "119010239" << endl; // replace it with your student id
-    cout << "Name: " << "潘涛" << endl; // replace it with your name
-    cout << "Assignment 1" << endl;
-    cout << "Run Time: " << end-start << " seconds" << endl;
-    cout << "Input Size: " << N << endl;
-    cout << "Process Number: " << comm_sz << endl; 
     delete[] A;
     delete[] B;
 	MPI_Finalize();
